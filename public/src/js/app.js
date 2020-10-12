@@ -63,7 +63,7 @@ function configurePushSub() {
     .then(function(sub) {
       if (sub === null) {
         // Create a new subscription
-        var vapidPublicKey = 'BKapuZ3XLgt9UZhuEkodCrtnfBo9Smo-w1YXCIH8YidjHOFAU6XHpEnXefbuYslZY9vtlEnOAmU7Mc-kWh4gfmE';
+        var vapidPublicKey = 'BNf8oGUx3sNHC3mh4qu-TQ89gsl8g-MAxaKOwDPvdXfXfpmEDq24Y26mTKo2xFNX1xY4xmHmKDfPnj_YJFtcVBY';
         var convertedVapidPublicKey = urlBase64ToUint8Array(vapidPublicKey);
         return reg.pushManager.subscribe({
           userVisibleOnly: true,
@@ -74,7 +74,7 @@ function configurePushSub() {
       }
     })
     .then(function(newSub) {
-      return fetch('https://pwagram-99adf.firebaseio.com/subscriptions.json', {
+      return fetch('https://pwagram-d9cd3.firebaseio.com/subscriptions.json', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

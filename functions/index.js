@@ -11,7 +11,7 @@ var serviceAccount = require("./pwagram-fb-key.json");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  databaseURL: 'https://pwagram-99adf.firebaseio.com/'
+  databaseURL: 'https://pwagram-d9cd3.firebaseio.com'
 });
 
 exports.storePostData = functions.https.onRequest(function(request, response) {
