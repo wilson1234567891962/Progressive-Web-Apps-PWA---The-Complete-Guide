@@ -68,16 +68,12 @@ workboxSW.router.registerRoute(function (routeData) {
 
 workboxSW.precache([
   {
-    "url": "404.html",
-    "revision": "0a27a4163254fc8fce870c8cc3a3f94f"
-  },
-  {
     "url": "favicon.ico",
     "revision": "2cab47d9e04d664d93c8d91aec59e812"
   },
   {
     "url": "index.html",
-    "revision": "de6f12b4c1b2e98ffbaf1ffb4bed9d92"
+    "revision": "b30611fae824ce157912d7f356879eaa"
   },
   {
     "url": "manifest.json",
@@ -86,10 +82,6 @@ workboxSW.precache([
   {
     "url": "offline.html",
     "revision": "45352e71a80a5c75d25e226e7330871b"
-  },
-  {
-    "url": "service-worker.js",
-    "revision": "453e62c35d044a77d427712a0ae81c0e"
   },
   {
     "url": "src/css/app.css",
@@ -102,46 +94,6 @@ workboxSW.precache([
   {
     "url": "src/css/help.css",
     "revision": "1c6d81b27c9d423bece9869b07a7bd73"
-  },
-  {
-    "url": "src/js/app.js",
-    "revision": "17d0fcc0653795cd01bbe20c7dba5274"
-  },
-  {
-    "url": "src/js/feed.js",
-    "revision": "180e2db73e0dfa27a074d06cd64e9c30"
-  },
-  {
-    "url": "src/js/fetch.js",
-    "revision": "6b82fbb55ae19be4935964ae8c338e92"
-  },
-  {
-    "url": "src/js/idb.js",
-    "revision": "017ced36d82bea1e08b08393361e354d"
-  },
-  {
-    "url": "src/js/material.min.js",
-    "revision": "713af0c6ce93dbbce2f00bf0a98d0541"
-  },
-  {
-    "url": "src/js/promise.js",
-    "revision": "10c2238dcd105eb23f703ee53067417f"
-  },
-  {
-    "url": "src/js/utility.js",
-    "revision": "4853a87685922cdf08b8bc5ed3f6f85e"
-  },
-  {
-    "url": "sw-base.js",
-    "revision": "a531b038bd9fc8c3b7cc56e23da72451"
-  },
-  {
-    "url": "sw.js",
-    "revision": "478f479738fb631a34e8ff9de1170170"
-  },
-  {
-    "url": "workbox-sw.prod.v2.0.0.js",
-    "revision": "7b6749c71e3ba8b786ce6cb65e248ac8"
   },
   {
     "url": "src/images/main-image-lg.jpg",
@@ -158,5 +110,129 @@ workboxSW.precache([
   {
     "url": "src/images/sf-boat.jpg",
     "revision": "0f282d64b0fb306daf12050e812d6a19"
+  },
+  {
+    "url": "src/js/app.min.js",
+    "revision": "79ce2f9476d47d787698647062b23c4c"
+  },
+  {
+    "url": "src/js/feed.min.js",
+    "revision": "295b95f2ceac4e38914184cafed5723f"
+  },
+  {
+    "url": "src/js/fetch.min.js",
+    "revision": "8e4af7513729aab7f021bef839d0fd6d"
+  },
+  {
+    "url": "src/js/idb.min.js",
+    "revision": "c8bd728048f3f43ad288ffc84d13a57d"
+  },
+  {
+    "url": "src/js/material.min.js",
+    "revision": "713af0c6ce93dbbce2f00bf0a98d0541"
+  },
+  {
+    "url": "src/js/promise.min.js",
+    "revision": "b25b0687e188f1777a154363d093e816"
+  },
+  {
+    "url": "src/js/utility.min.js",
+    "revision": "cb94c3608146875801c35b8e4ef2d36a"
   }
 ]);
+
+self.addEventListener('sync', function(event) {
+  console.log('[Service Worker] Background syncing', event);
+  if (event.tag === 'sync-new-posts') {
+    console.log('[Service Worker] Syncing new Posts');
+    event.waitUntil(
+      readAllData('sync-posts')
+        .then(function(data) {
+          for (var dt of data) {
+            var postData = new FormData();
+            postData.append('id', dt.id);
+            postData.append('title', dt.title);
+            postData.append('location', dt.location);
+            postData.append('rawLocationLat', dt.rawLocation.lat);
+            postData.append('rawLocationLng', dt.rawLocation.lng);
+            postData.append('file', dt.picture, dt.id + '.png');
+
+            fetch('https://us-central1-pwagram-99adf.cloudfunctions.net/storePostData', {
+              method: 'POST',
+              body: postData
+            })
+              .then(function(res) {
+                console.log('Sent data', res);
+                if (res.ok) {
+                  res.json()
+                    .then(function(resData) {
+                      deleteItemFromData('sync-posts', resData.id);
+                    });
+                }
+              })
+              .catch(function(err) {
+                console.log('Error while sending data', err);
+              });
+          }
+
+        })
+    );
+  }
+});
+
+self.addEventListener('notificationclick', function(event) {
+  var notification = event.notification;
+  var action = event.action;
+
+  console.log(notification);
+
+  if (action === 'confirm') {
+    console.log('Confirm was chosen');
+    notification.close();
+  } else {
+    console.log(action);
+    event.waitUntil(
+      clients.matchAll()
+        .then(function(clis) {
+          var client = clis.find(function(c) {
+            return c.visibilityState === 'visible';
+          });
+
+          if (client !== undefined) {
+            client.navigate(notification.data.url);
+            client.focus();
+          } else {
+            clients.openWindow(notification.data.url);
+          }
+          notification.close();
+        })
+    );
+  }
+});
+
+self.addEventListener('notificationclose', function(event) {
+  console.log('Notification was closed', event);
+});
+
+self.addEventListener('push', function(event) {
+  console.log('Push Notification received', event);
+
+  var data = {title: 'New!', content: 'Something new happened!', openUrl: '/'};
+
+  if (event.data) {
+    data = JSON.parse(event.data.text());
+  }
+
+  var options = {
+    body: data.content,
+    icon: '/src/images/icons/app-icon-96x96.png',
+    badge: '/src/images/icons/app-icon-96x96.png',
+    data: {
+      url: data.openUrl
+    }
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
+  );
+});
